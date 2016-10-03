@@ -20,9 +20,7 @@ def get_audio_track_titles(media_blocks):
         return ('', '')
     audio_track_title = media_blocks.get('audio_track', {}).get('title', '')
     external_video_title = media_blocks.get('external_video', {}).get('title', '')
-    if PY3:
-        return (audio_track_title, external_video_title)
-    return (audio_track_title.encode('utf-8'), external_video_title.encode('utf-8'))
+    return (audio_track_title, external_video_title)
 
 
 def get_weekly_digests():
@@ -70,7 +68,11 @@ def main():
         for coubs_page in all_weekly_coubs_pages:
             coubs = coubs_page.get('coubs', [])
             for coub in coubs:
-                writer.writerow(get_audio_track_titles(coub.get('media_blocks')))
+                audio_track_titles = get_audio_track_titles(coub.get('media_blocks'))
+                if PY3:
+                    writer.writerow(audio_track_titles)
+                else:
+                    writer.writerow([title.encode('utf-8') for title in audio_track_titles])
     csvfile.close()
     print('-' * 80)
 
