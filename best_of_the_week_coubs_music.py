@@ -6,9 +6,8 @@ import json
 import multiprocessing
 import requests
 import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
 
+PY3 = sys.version_info[0] == 3
 
 COUB_URL = 'http://coub.com'
 SEARCH_URL = COUB_URL + '/api/v2/search'
@@ -21,7 +20,9 @@ def get_audio_track_titles(media_blocks):
         return ('', '')
     audio_track_title = media_blocks.get('audio_track', {}).get('title', '')
     external_video_title = media_blocks.get('external_video', {}).get('title', '')
-    return (audio_track_title, external_video_title)
+    if PY3:
+        return (audio_track_title, external_video_title)
+    return (audio_track_title.encode('utf-8'), external_video_title.encode('utf-8'))
 
 
 def get_weekly_digests():
@@ -59,14 +60,18 @@ def main():
     pool = multiprocessing.Pool(processes=multiprocessing.cpu_count() * 4) 
     weekly_digests = get_weekly_digests()
     weekly_digest_ids = [weekly_digest.get('id') for weekly_digest in weekly_digests]
-    all_weekly_coubs_pages_res = pool.map(get_all_weekly_digest_coubs, weekly_digest_ids[:5])
-    with open('output.csv', 'w') as csvfile:
-        writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        for all_weekly_coubs_pages in all_weekly_coubs_pages_res:
-            for coubs_page in all_weekly_coubs_pages:
-                coubs = coubs_page.get('coubs', [])
-                for coub in coubs:
-                    writer.writerow(get_audio_track_titles(coub.get('media_blocks')))
+    all_weekly_coubs_pages_res = pool.map(get_all_weekly_digest_coubs, weekly_digest_ids)
+    if PY3:
+        csvfile = open('output.csv', 'w', encoding='utf-8')
+    else:
+        csvfile = open('output.csv', 'w')
+    writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    for all_weekly_coubs_pages in all_weekly_coubs_pages_res:
+        for coubs_page in all_weekly_coubs_pages:
+            coubs = coubs_page.get('coubs', [])
+            for coub in coubs:
+                writer.writerow(get_audio_track_titles(coub.get('media_blocks')))
+    csvfile.close()
     print('-' * 80)
 
 
