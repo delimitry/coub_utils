@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import csv
-import json
 import multiprocessing
 import sys
 
@@ -27,14 +26,14 @@ def get_audio_track_titles(media_blocks):
 def get_weekly_digests():
     """Get weekly digests"""
     req = requests.get(WEEKLY_DIGESTS_URL)
-    return json.loads(req.text).get('weekly_digests', [])
+    return req.json().get('weekly_digests', [])
 
 
 def get_weekly_digest_coubs_on_page(index, page_id):
     """Get weekly digest coubs on defined page"""
     req = requests.get('{url}/{index}/coubs?page={page_id}'.format(
         url=WEEKLY_DIGESTS_URL, index=index, page_id=page_id))
-    return json.loads(req.text)
+    return req.json()
 
 
 def get_all_weekly_digest_coubs(index):
@@ -60,10 +59,10 @@ def main():
     weekly_digest_ids = [weekly_digest.get('id') for weekly_digest in weekly_digests]
     all_weekly_coubs_pages_res = pool.map(get_all_weekly_digest_coubs, weekly_digest_ids)
     if PY3:
-        csvfile = open('output.csv', 'w', encoding='utf-8')
+        csv_file = open('output.csv', 'w', encoding='utf-8')
     else:
-        csvfile = open('output.csv', 'w')
-    writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        csv_file = open('output.csv', 'w')
+    writer = csv.writer(csv_file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     for all_weekly_coubs_pages in all_weekly_coubs_pages_res:
         for coubs_page in all_weekly_coubs_pages:
             coubs = coubs_page.get('coubs', [])
@@ -73,7 +72,7 @@ def main():
                     writer.writerow(audio_track_titles)
                 else:
                     writer.writerow([title.encode('utf-8') for title in audio_track_titles])
-    csvfile.close()
+    csv_file.close()
     print('-' * 80)
 
 
